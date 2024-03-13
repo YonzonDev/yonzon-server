@@ -179,7 +179,7 @@ async def update_item(
     for row in response["inventory"]:
         if row["id"] == item_id:
             is_exists = True
-            existing_quantity = row["quantity"]
+            # existing_quantity = row["quantity"]
             break
 
     if not is_exists:
@@ -188,10 +188,9 @@ async def update_item(
     # Prepare data for update
     item_data = {
         "price": price,
-        "quantity": quantity
-        + existing_quantity,  # Adding old quantity with new quantity
-        "total": (quantity + existing_quantity)
-        * price,  # Recalculating total based on updated quantity
+        "quantity": quantity,
+        # + existing_quantity,  # Adding old quantity with new quantity
+        "total": quantity * price,  # Recalculating total based on updated quantity
     }
 
     # Update item
