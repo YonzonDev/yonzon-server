@@ -1,0 +1,17 @@
+{
+    "owner": {
+        "username": "YonzonOwner",
+        "password": "owner2024",
+        "access_type": 1
+    },
+    "cashier": {
+        "username": "YonzonCashier",
+        "password": "cashier2024",
+        "access_type": 2
+    },
+    "dev": {
+        "username": "YonzonDev",
+        "password": "dev2024",
+        "access_type": 1
+    }
+}
