@@ -1,8 +1,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, Form
-
-# from dotenv import load_dotenv, find_dotenv
-# from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
+from dotenv import load_dotenv, find_dotenv
 
 import pandas as pd
 import requests
@@ -11,10 +10,10 @@ import json
 import time
 
 import io
-from fastapi.responses import StreamingResponse
+import os
 
 
-# _ = load_dotenv(find_dotenv())
+_ = load_dotenv(find_dotenv())
 
 app = FastAPI(title="Yonzon Back End", version="0.0.1", docs_url="/")
 
@@ -30,9 +29,10 @@ app.add_middleware(
 with open("users.json", "r") as data:
     users = json.load(data)
 
-headers = {"Authorization": f"Bearer yonzon-autogears"}
-# sheety_endpoint = os.environ.get(f"SHEETY_ENDPOINT")
-sheety_endpoint = "https://api.sheety.co/b1e363185c34cd0b7304e7aaf871b1f4/yonzonSheets"
+sheety_endpoint = os.environ.get(f"SHEETY_ENDPOINT")
+bearer_token = os.environ.get(f"BEARER_TOKEN")
+
+headers = {"Authorization": f"Bearer {bearer_token}"}
 
 
 @app.post("/signin", tags=["Auth"])
@@ -165,46 +165,44 @@ async def update_item(
     quantity: int = Form(...),
 ):
     try:
-        pass
+        print("Tag: Inventory\nEndpoint: `/update-item`")
+
+        # Retrieve inventory data
+        response = requests.get(
+            url=f"{sheety_endpoint}/inventory", headers=headers
+        ).json()
+
+        # Check if item exists
+        is_exists = False
+        for row in response["inventory"]:
+            if row["id"] == item_id:
+                is_exists = True
+                # existing_quantity = row["quantity"]
+                break
+
+        if not is_exists:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+        # Prepare data for update
+        item_data = {
+            "price": price,
+            "quantity": quantity,
+            # + existing_quantity,  # Adding old quantity with new quantity
+            "total": quantity * price,  # Recalculating total based on updated quantity
+        }
+
+        # Update item
+        response = requests.put(
+            url=f"{sheety_endpoint}/inventory/{item_id}",
+            json={"inventory": item_data},
+            headers=headers,
+        )
+
+        return {
+            "response": "Data was updated successfully",
+        }
     except:
         raise HTTPException(status_code=500, detail="Google Sheets API issues")
-
-    print("Tag: Inventory\nEndpoint: `/update-item`")
-
-    # Retrieve inventory data
-    response = requests.get(url=f"{sheety_endpoint}/inventory", headers=headers).json()
-
-    # Check if item exists
-    is_exists = False
-    for row in response["inventory"]:
-        if row["id"] == item_id:
-            is_exists = True
-            # existing_quantity = row["quantity"]
-            break
-
-    if not is_exists:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    # Prepare data for update
-    item_data = {
-        "price": price,
-        "quantity": quantity,
-        # + existing_quantity,  # Adding old quantity with new quantity
-        "total": quantity * price,  # Recalculating total based on updated quantity
-    }
-
-    # Update item
-    response = requests.put(
-        url=f"{sheety_endpoint}/inventory/{item_id}",
-        json={"inventory": item_data},
-        headers=headers,
-    )
-
-    response.raise_for_status()  # Raise error if request was not successful
-
-    return {
-        "response": "Data was updated successfully",
-    }
 
 
 @app.delete("/delete-item/{item_id}", tags=["Inventory"])
@@ -304,7 +302,6 @@ async def add_transaction(
                         headers=headers,
                     )
 
-                    print(update_quantity.status_code)
                     return {"data": "Data was added successfully"}
         raise HTTPException(
             status_code=404, detail=f"Insufficient quantity for {orders} order/s"
