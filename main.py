@@ -101,14 +101,14 @@ async def get_item(item_id: int):
 
         is_exists = False
         for row in response["inventory"]:
-            if row["id"] == item_id + 2:
+            if row["id"] == item_id:
                 is_exists = True
 
         if not is_exists:
             raise HTTPException(status_code=404, detail="Item not found")
 
         response = requests.get(
-            url=f"{sheety_endpoint}/inventory/{item_id + 2}", headers=headers
+            url=f"{sheety_endpoint}/inventory/{item_id}", headers=headers
         ).json()
         return {
             "response": "Data was fetched successfully",
